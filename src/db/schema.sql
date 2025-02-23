@@ -32,3 +32,15 @@ CREATE TABLE projetos (
     alunoId INT NOT NULL,
     FOREIGN KEY (alunoId) REFERENCES alunos(id) ON DELETE CASCADE
 );
+
+CREATE TABLE horarios (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    cargaHoraria INT NOT NULL,
+    diaSemana VARCHAR(20) NOT NULL,
+    hInicio TIME NOT NULL,
+    hFim TIME NOT NULL,
+    alunoId INT NOT NULL,
+    disciplinaId INT NOT NULL,
+    FOREIGN KEY (alunoId) REFERENCES alunos(id) ON DELETE CASCADE,
+    FOREIGN KEY (disciplinaId) REFERENCES disciplinas(id) ON DELETE CASCADE
+);
