@@ -63,6 +63,7 @@ export function alunoRoutes(router) {
 
       res.json({ token, message: 'Login bem-sucedido!' });
     } catch (error) {
+      console.log(error);
       res.status(500).json({ error: 'Erro no login', detalhes: error.message });
     }
   });
@@ -139,4 +140,34 @@ export function alunoRoutes(router) {
       });
     }
   });
+
+  // Excluir aluno
+router.delete('/alunos/excluir', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader)
+    return res.status(401).json({ error: 'Token não fornecido!' });
+
+  const token = authHeader.split(' ')[1]; // Remove o prefixo 'Bearer'
+  if (!token)
+    return res.status(401).json({ error: 'Token inválido ou ausente!' });
+
+  try {
+    // Verificar o token e pegar o ID do aluno
+    const decoded = jwt.verify(token, SECRET_KEY);
+    const aluno = await Aluno.findByPk(decoded.id);
+
+    if (!aluno)
+      return res.status(404).json({ error: 'Aluno não encontrado!' });
+
+    await aluno.destroy(); // Remove o aluno do banco de dados
+
+    res.json({ message: 'Aluno excluído com sucesso!' });
+  } catch (error) {
+    res.status(401).json({
+      error: 'Token inválido ou expirado!',
+      detalhes: error.message,
+    });
+  }
+});
+
 }

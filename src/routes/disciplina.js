@@ -76,6 +76,7 @@ export function disciplinaRoutes(router) {
 
       res.json(aluno.disciplinas);
     } catch (error) {
+      console.log(error);
       console.error('Erro ao verificar o token:', error);
       res.status(401).json({ error: 'Token inválido ou expirado!' });
     }
