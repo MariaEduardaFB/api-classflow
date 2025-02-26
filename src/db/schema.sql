@@ -23,6 +23,14 @@ CREATE TABLE disciplinas (
     FOREIGN KEY (alunoId) REFERENCES alunos(id)
 );
 
+CREATE TABLE documentos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    src VARCHAR(255) NOT NULL,
+    alunoId INT NOT NULL,
+    FOREIGN KEY (alunoId) REFERENCES alunos(id)
+);
+
 CREATE TABLE projetos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     titulo VARCHAR(255) NOT NULL,
