@@ -36,6 +36,40 @@ export function documentoRoutes(router) {
         }
     });
 
+    router.put('/documentos/:id', autenticar, upload.single('file'), async (req, res) => {
+      try {
+          const { id } = req.params;
+          const { nome } = req.body;
+          const { file } = req;
+
+          const documento = await Documento.findByPk(id);
+
+          if (!documento) {
+              return res.status(404).json({ error: 'Documento não encontrado!' });
+          }
+
+          if (nome) {
+              documento.nome = nome;
+          }
+
+          if (file) {
+              try {
+                  fs.unlinkSync(documento.src);
+              } catch (error) {
+                  console.error('Erro ao deletar arquivo antigo:', error);
+              }
+
+              documento.src = file.path;
+          }
+
+          await documento.save();
+
+          res.json({ message: 'Documento atualizado com sucesso!', data: documento });
+      } catch (error) {
+          res.status(500).json({ error: 'Erro ao atualizar documento', detalhes: error.message });
+      }
+  });
+
     router.delete('/documentos/:id', autenticar, async (req, res) => {
         try {
             const { id } = req.params;
