@@ -3,64 +3,68 @@ import jwt from 'jsonwebtoken';
 import { Projeto } from '../models/projeto.js';
 import { Aluno } from '../models/aluno.js';
 import { router } from './index.js';
+import { uploadFileMiddleware } from '../middleware/uploadFile.js';
+import multer from 'multer';
+import path from "path";
 
 const SECRET_KEY = process.env.JWT_SECRET;
 
 export function projetoRoutes(router) {
   // Middleware para autenticação
   const autenticar = async (req, res, next) => {
-    const token = req.headers['authorization'];
-    if (!token) return res.status(401).json({ error: 'Token não fornecido!' });
+    const token = req.headers['authorization'].split(' ')[1];
+    if (!token)
+      return res.status(401).json({ error: 'Token inválido ou ausente!' });
 
     try {
       const decoded = jwt.verify(token, SECRET_KEY);
       req.alunoId = decoded.id; // Certifique-se de que o ID do aluno está sendo definido
       next();
     } catch (error) {
-      res.status(401).json({ error: 'Token inválido ou expirado!' });
+      res.status(401).json({ error: 'Token inválido ou expirado!6' });
     }
   };
 
-  // Cadastrar projeto
-  router.post('/projetos', autenticar, async (req, res) => {
-    const { titulo, descricao, status, notas } = req.body;
+  // Cadastrar projeto com upload de arquivo
+  router.post(
+    '/projeto',
+    autenticar,
+    uploadFileMiddleware,
+    async (req, res) => {
+      const { titulo, descricao, status, notas } = req.body;
 
-    console.log('Dados recebidos no servidor:', {
-      titulo,
-      descricao,
-      status,
-      notas,
-    });
+      if (!titulo || !descricao || !status) {
+        return res
+          .status(400)
+          .json({ error: 'Todos os campos são obrigatórios!' });
+      }
 
-    if (!titulo || !descricao || !status) {
-      return res
-        .status(400)
-        .json({ error: 'Todos os campos são obrigatórios!' });
+      try {
+        const novoProjeto = await Projeto.create({
+          titulo,
+          descricao,
+          status,
+          notas,
+          alunoId: req.alunoId,
+          caminhoDoArquivo: req.file.path,
+        });
+        res.status(201).json(novoProjeto);
+      } catch (error) {
+        console.error('Erro ao cadastrar projeto:', error);
+        res.status(500).json({
+          error: 'Erro ao cadastrar projeto',
+          detalhes: error.message,
+        });
+      }
     }
-
-    try {
-      const novoProjeto = await Projeto.create({
-        titulo,
-        descricao,
-        status,
-        notas,
-        alunoId: req.alunoId, // Usando alunoId (com "I" maiúsculo)
-      });
-      res.status(201).json(novoProjeto);
-    } catch (error) {
-      console.error('Erro ao cadastrar projeto:', error);
-      res
-        .status(500)
-        .json({ error: 'Erro ao cadastrar projeto', detalhes: error.message });
-    }
-  });
+  );
 
   // Listar projetos
   router.get('/projetos', autenticar, async (req, res) => {
     try {
       const projetos = await Projeto.findAll({
         where: { alunoId: req.alunoId },
-      }); // Usando alunoId
+      });
       if (projetos.length === 0) {
         return res.status(404).json({ message: 'Nenhum projeto encontrado.' });
       }
@@ -80,7 +84,7 @@ export function projetoRoutes(router) {
     try {
       const projeto = await Projeto.findOne({
         where: { id, alunoId: req.alunoId },
-      }); // Usando alunoId
+      });
       if (!projeto)
         return res.status(404).json({ error: 'Projeto não encontrado!' });
 
@@ -104,7 +108,7 @@ export function projetoRoutes(router) {
     try {
       const projeto = await Projeto.findOne({
         where: { id, alunoId: req.alunoId },
-      }); // Usando alunoId
+      });
       if (!projeto)
         return res.status(404).json({ error: 'Projeto não encontrado!' });
 

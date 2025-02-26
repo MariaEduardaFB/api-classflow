@@ -15,6 +15,7 @@ export const Projeto = sequelize.define(
     },
     notas: { type: DataTypes.TEXT, allowNull: true },
     alunoId: { type: DataTypes.INTEGER, allowNull: false },
+    caminhoDoArquivo: { type: DataTypes.STRING, allowNull: true },
   },
   {
     tableName: 'projetos',
