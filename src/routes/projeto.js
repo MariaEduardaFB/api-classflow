@@ -3,61 +3,48 @@ import jwt from 'jsonwebtoken';
 import { Projeto } from '../models/projeto.js';
 import { Aluno } from '../models/aluno.js';
 import { router } from './index.js';
-import { uploadFileMiddleware } from '../middleware/uploadFile.js';
-import multer from 'multer';
-import path from "path";
+import autenticar from '../middlewares/autenticar.js';
+import upload from '../middlewares/upload.js';
+import fs from 'fs';
 
 const SECRET_KEY = process.env.JWT_SECRET;
 
 export function projetoRoutes(router) {
-  // Middleware para autenticação
-  const autenticar = async (req, res, next) => {
-    const token = req.headers['authorization'].split(' ')[1];
-    if (!token)
-      return res.status(401).json({ error: 'Token inválido ou ausente!' });
+  router.post('/projetos', autenticar, upload.single('file'), async (req, res) => {
+    const { titulo, descricao, status, notas } = req.body;
+    const { file } = req;
+
+    console.log('Dados recebidos no servidor:', {
+      titulo,
+      descricao,
+      status,
+      notas,
+      src: file ? file.path : null,
+    });
+
+    if (!titulo || !descricao || !status) {
+      return res
+        .status(400)
+        .json({ error: 'Todos os campos são obrigatórios!' });
+    }
 
     try {
-      const decoded = jwt.verify(token, SECRET_KEY);
-      req.alunoId = decoded.id; // Certifique-se de que o ID do aluno está sendo definido
-      next();
+      const novoProjeto = await Projeto.create({
+        titulo,
+        descricao,
+        status,
+        notas,
+        src: file ? file.path : null,
+        alunoId: req.alunoId,
+      });
+      res.status(201).json(novoProjeto);
     } catch (error) {
-      res.status(401).json({ error: 'Token inválido ou expirado!6' });
+      console.error('Erro ao cadastrar projeto:', error);
+      res
+        .status(500)
+        .json({ error: 'Erro ao cadastrar projeto', detalhes: error.message });
     }
-  };
-
-  // Cadastrar projeto com upload de arquivo
-  router.post(
-    '/projeto',
-    autenticar,
-    uploadFileMiddleware,
-    async (req, res) => {
-      const { titulo, descricao, status, notas } = req.body;
-
-      if (!titulo || !descricao || !status) {
-        return res
-          .status(400)
-          .json({ error: 'Todos os campos são obrigatórios!' });
-      }
-
-      try {
-        const novoProjeto = await Projeto.create({
-          titulo,
-          descricao,
-          status,
-          notas,
-          alunoId: req.alunoId,
-          caminhoDoArquivo: req.file.path,
-        });
-        res.status(201).json(novoProjeto);
-      } catch (error) {
-        console.error('Erro ao cadastrar projeto:', error);
-        res.status(500).json({
-          error: 'Erro ao cadastrar projeto',
-          detalhes: error.message,
-        });
-      }
-    }
-  );
+  });
 
   // Listar projetos
   router.get('/projetos', autenticar, async (req, res) => {
@@ -78,22 +65,40 @@ export function projetoRoutes(router) {
   });
 
   // Editar projeto
-  router.put('/projetos/:id', autenticar, async (req, res) => {
+  router.put('/projetos/:id', autenticar, upload.single('file'), async (req, res) => {
     const { id } = req.params;
     const { titulo, descricao, status, notas } = req.body;
+    const { file } = req;
+
     try {
       const projeto = await Projeto.findOne({
         where: { id, alunoId: req.alunoId },
       });
-      if (!projeto)
+      if (!projeto) {
         return res.status(404).json({ error: 'Projeto não encontrado!' });
+      }
 
+      // Atualiza os campos do projeto
       projeto.titulo = titulo;
       projeto.descricao = descricao;
       projeto.status = status;
       projeto.notas = notas;
-      await projeto.save();
 
+      if (file) {
+        // Remove o arquivo antigo, se existir
+        if (projeto.src) {
+          try {
+            fs.unlinkSync(projeto.src);
+          } catch (error) {
+            console.error('Erro ao deletar arquivo antigo:', error);
+          }
+        }
+
+        // Atualiza o caminho do novo arquivo
+        projeto.src = file.path;
+      }
+
+      await projeto.save();
       res.json({ message: 'Projeto atualizado com sucesso!', projeto });
     } catch (error) {
       res
@@ -109,8 +114,18 @@ export function projetoRoutes(router) {
       const projeto = await Projeto.findOne({
         where: { id, alunoId: req.alunoId },
       });
-      if (!projeto)
+      if (!projeto) {
         return res.status(404).json({ error: 'Projeto não encontrado!' });
+      }
+
+      // Remove o arquivo associado ao projeto, se existir
+      if (projeto.src) {
+        try {
+          fs.unlinkSync(projeto.src);
+        } catch (error) {
+          console.error('Erro ao deletar arquivo:', error);
+        }
+      }
 
       await projeto.destroy();
       res.json({ message: 'Projeto excluído com sucesso!' });
