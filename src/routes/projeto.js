@@ -3,25 +3,11 @@ import jwt from 'jsonwebtoken';
 import { Projeto } from '../models/projeto.js';
 import { Aluno } from '../models/aluno.js';
 import { router } from './index.js';
+import autenticar from '../middlewares/autenticar.js';
 
 const SECRET_KEY = process.env.JWT_SECRET;
 
 export function projetoRoutes(router) {
-  // Middleware para autenticação
-  const autenticar = async (req, res, next) => {
-    const token = req.headers['authorization'];
-    if (!token) return res.status(401).json({ error: 'Token não fornecido!' });
-
-    try {
-      const decoded = jwt.verify(token, SECRET_KEY);
-      req.alunoId = decoded.id; // Certifique-se de que o ID do aluno está sendo definido
-      next();
-    } catch (error) {
-      res.status(401).json({ error: 'Token inválido ou expirado!' });
-    }
-  };
-
-  // Cadastrar projeto
   router.post('/projetos', autenticar, async (req, res) => {
     const { titulo, descricao, status, notas } = req.body;
 
