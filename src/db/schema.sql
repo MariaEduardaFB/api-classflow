@@ -37,6 +37,7 @@ CREATE TABLE projetos (
     descricao TEXT NOT NULL,
     status ENUM('Em andamento', 'Concluído') NOT NULL DEFAULT 'Em andamento',
     notas TEXT,
+    src VARCHAR(255) NOT NULL,
     alunoId INT NOT NULL,
     FOREIGN KEY (alunoId) REFERENCES alunos(id) ON DELETE CASCADE
 );
