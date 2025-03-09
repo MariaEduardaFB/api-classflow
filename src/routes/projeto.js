@@ -3,50 +3,85 @@ import jwt from 'jsonwebtoken';
 import { Projeto } from '../models/projeto.js';
 import { Aluno } from '../models/aluno.js';
 import { router } from './index.js';
-import autenticar from '../middlewares/autenticar.js';
-import upload from '../middlewares/upload.js';
-import fs from 'fs';
+import multer from 'multer';
+import path from "path";
+import { uploadFileMiddleware } from '../middlewares/fileUpload.js';
+import { error } from 'console';
 
 const SECRET_KEY = process.env.JWT_SECRET;
 
 export function projetoRoutes(router) {
-  router.post('/projetos', autenticar, upload.single('file'), async (req, res) => {
-    const { titulo, descricao, status, notas } = req.body;
-    const { file } = req;
+  // Middleware para autenticação
+  const autenticar = async (req, res, next) => {
+    const authHeader = req.headers['authorization'];
 
-    console.log('Dados recebidos no servidor:', {
-      titulo,
-      descricao,
-      status,
-      notas,
-      src: file ? file.path : null,
-    });
 
-    if (!titulo || !descricao || !status) {
-      return res
-        .status(400)
-        .json({ error: 'Todos os campos são obrigatórios!' });
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Token inválido ou ausente!' });
     }
+
+    const token = authHeader.split(' ')[1];
 
     try {
-      const novoProjeto = await Projeto.create({
-        titulo,
-        descricao,
-        status,
-        notas,
-        src: file ? file.path : null,
-        alunoId: req.alunoId,
-      });
-      res.status(201).json(novoProjeto);
+      const decoded = jwt.verify(token, SECRET_KEY);
+      req.alunoId = decoded.id; // Certifique-se de que o ID do aluno está correto
+      next();
     } catch (error) {
-      console.error('Erro ao cadastrar projeto:', error);
-      res
-        .status(500)
-        .json({ error: 'Erro ao cadastrar projeto', detalhes: error.message });
+      console.error("Erro ao verificar token:", error.message);
+      res.status(401).json({ error: 'Token inválido ou expirado!' });
     }
-  });
+  };
 
-  // Listar projetos
+  router.post('/projeto', autenticar,
+    uploadFileMiddleware,
+    async (req, res) => {
+      const { titulo, descricao, status, notas } = req.body;
+      const { alunoId, file } = req;
+
+      console.log(status, '88888888888')
+
+      if (!titulo || !descricao || !status)
+        return res
+          .status(400)
+          .json({ error: 'Todos os campos são obrigatórios!' });
+
+      if (!req.file)
+        return res
+          .status(400)
+          .json({ error: 'O arquivo do projeto é obrigatório!' });
+
+
+      if (status !== 'Em Andamento' && status !== 'Concluído' && status !== 'Pendente')
+        return res
+          .status(400)
+          .json({ error: 'O status do projeto é inválido!' });
+
+
+      try {
+        
+        const novoProjeto = await Projeto.create({
+          titulo,
+          descricao,
+          status,
+          notas,
+          alunoId,
+          caminhoDoArquivo: file.filename,
+        });
+
+
+        res.status(201).json(novoProjeto);
+      } catch (error) {
+
+        res.status(500).json({
+          error: 'Erro ao cadastrar projeto',
+          detalhes: error.message,
+        });
+      }
+    }
+  );
+
+
   router.get('/projetos', autenticar, async (req, res) => {
     try {
       const projetos = await Projeto.findAll({
@@ -65,42 +100,41 @@ export function projetoRoutes(router) {
   });
 
   // Editar projeto
-  router.put('/projetos/:id', autenticar, upload.single('file'), async (req, res) => {
+  router.put('/projetos/:id', autenticar, uploadFileMiddleware, async (req, res) => {
+
     const { id } = req.params;
     const { titulo, descricao, status, notas } = req.body;
-    const { file } = req;
+
+
+    if (status && (status !== 'Em andamento' && status !== 'Concluído' && status !== 'Pendente'))
+      return res
+        .status(400)
+        .json({ error: 'O status do projeto é inválido!' });
+
 
     try {
-      const projeto = await Projeto.findOne({
+
+      const projetoAntigo = await Projeto.findOne({
         where: { id, alunoId: req.alunoId },
       });
-      if (!projeto) {
+
+      if (!projetoAntigo)
         return res.status(404).json({ error: 'Projeto não encontrado!' });
-      }
 
-      // Atualiza os campos do projeto
-      projeto.titulo = titulo;
-      projeto.descricao = descricao;
-      projeto.status = status;
-      projeto.notas = notas;
+      await Projeto.update(
+        { titulo, descricao, status, notas },
+        { where: { id, alunoId: req.alunoId } }
+      );
 
-      if (file) {
-        // Remove o arquivo antigo, se existir
-        if (projeto.src) {
-          try {
-            fs.unlinkSync(projeto.src);
-          } catch (error) {
-            console.error('Erro ao deletar arquivo antigo:', error);
-          }
-        }
+      const projetoAtualizado = await Projeto.findOne({
+        where: { id, alunoId: req.alunoId },
+      });
 
-        // Atualiza o caminho do novo arquivo
-        projeto.src = file.path;
-      }
 
-      await projeto.save();
-      res.json({ message: 'Projeto atualizado com sucesso!', projeto });
+
+      res.json({ message: 'Projeto atualizado com sucesso!', projetoAtualizado });
     } catch (error) {
+
       res
         .status(400)
         .json({ error: 'Erro ao atualizar projeto', detalhes: error.message });
@@ -114,18 +148,8 @@ export function projetoRoutes(router) {
       const projeto = await Projeto.findOne({
         where: { id, alunoId: req.alunoId },
       });
-      if (!projeto) {
+      if (!projeto)
         return res.status(404).json({ error: 'Projeto não encontrado!' });
-      }
-
-      // Remove o arquivo associado ao projeto, se existir
-      if (projeto.src) {
-        try {
-          fs.unlinkSync(projeto.src);
-        } catch (error) {
-          console.error('Erro ao deletar arquivo:', error);
-        }
-      }
 
       await projeto.destroy();
       res.json({ message: 'Projeto excluído com sucesso!' });

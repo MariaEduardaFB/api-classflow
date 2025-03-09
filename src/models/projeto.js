@@ -19,21 +19,21 @@ export const Projeto = sequelize.define(
       allowNull: false 
     },
     status: {
-      type: DataTypes.ENUM('Em andamento', 'Concluído'),
+      type: DataTypes.STRING,
       allowNull: false,
-      defaultValue: 'Em andamento',
     },
     notas: { 
       type: DataTypes.TEXT, 
       allowNull: true 
     },
-    src: { 
-      type: DataTypes.STRING, 
-      allowNull: false
-    },
     alunoId: { 
       type: DataTypes.INTEGER, 
-      allowNull: false },
+      allowNull: false 
+    },
+    caminhoDoArquivo: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   },
   {
     tableName: 'projetos',

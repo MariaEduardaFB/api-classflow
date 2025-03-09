@@ -19,11 +19,11 @@ app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
 
-(async () => {
-  try {
-    await sequelize.sync({ alter: true });
-    console.log('🎲 ✅ Banco de dados sincronizado!');
-  } catch (error) {
-    console.error('🎲 ❌ Erro ao sincronizar o banco de dados:', error);
-  }
-})();
+// (async () => {
+//   try {
+//     await sequelize.sync({ alter: true });
+//     console.log('🎲 ✅ Banco de dados sincronizado!');
+//   } catch (error) {
+//     console.error('🎲 ❌ Erro ao sincronizar o banco de dados:', error);
+//   }
+// })();
