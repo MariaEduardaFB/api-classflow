@@ -1,7 +1,7 @@
 import { DataTypes } from 'sequelize';
 import { sequelize } from '../config/database.js';
 
-const Documento = sequelize.define('documentos', {
+const Documentos = sequelize.define('documentos', {
     nome: {
         type: DataTypes.STRING,
         allowNull: false
@@ -16,4 +16,4 @@ const Documento = sequelize.define('documentos', {
     }
 });
 
-export default Documento;
+export default Documentos;
