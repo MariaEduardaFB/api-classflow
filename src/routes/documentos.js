@@ -67,7 +67,14 @@ export function documentoRoutes(router) {
       if (documentos.length === 0) {
         return res.status(404).json({ message: 'Nenhum documento encontrado.' });
       }
-      res.json(documentos);
+
+      const documentosComUrl = documentos.map(doc => ({
+        ...doc.toJSON(),
+        url: `${req.protocol}://${req.get('host')}/uploads/${doc.src}`
+      }));
+
+      res.json(documentosComUrl);
+      // res.json(documentos);
     } catch (error) {
       console.error('Erro ao buscar documentos:', error);
       res.status(500).json({ error: 'Erro ao buscar documentos', detalhes: error.message });

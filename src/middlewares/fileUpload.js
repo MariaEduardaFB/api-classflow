@@ -24,7 +24,7 @@ import multer from 'multer';
  
  function checkFileType(file, cb) {
  
-   const filetypes = /jpeg|jpg|png|gif/;
+   const filetypes = /jpeg|jpg|png|gif|pdf|doc|docx/;
    
    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
  
