@@ -4,8 +4,31 @@ import { Aluno } from '../models/aluno.js';
 import { Disciplina } from '../models/disciplina.js';
 import { router } from './index.js';
 import autenticar from '../middlewares/autenticar.js';
+import jwt from 'jsonwebtoken';
+
+const SECRET_KEY = process.env.JWT_SECRET;
 
 export function horarioRoutes(router) {
+  const autenticar = async (req, res, next) => {
+      const authHeader = req.headers['authorization'];
+  
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Token inválido ou ausente!' });
+      }
+  
+      const token = authHeader.split(' ')[1];
+  
+      try {
+        const decoded = jwt.verify(token, SECRET_KEY);
+        req.alunoId = decoded.id; // Certifique-se de que o ID do aluno está correto
+        next();
+      } catch (error) {
+        console.error("Erro ao verificar token:", error.message);
+        res.status(401).json({ error: 'Token inválido ou expirado!' });
+      }
+    };
+
+
   // Cadastrar horário
   router.post('/horarios', autenticar, async (req, res) => {
     const { cargaHoraria, diaSemana, hInicio, hFim, disciplinaId } = req.body;
