@@ -53,3 +53,15 @@ CREATE TABLE horarios (
     FOREIGN KEY (alunoId) REFERENCES alunos(id) ON DELETE CASCADE,
     FOREIGN KEY (disciplinaId) REFERENCES disciplinas(id) ON DELETE CASCADE
 );
+
+CREATE TABLE Avaliacoes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    professor VARCHAR(100) NOT NULL,
+    data DATE NOT NULL,
+    nota FLOAT NOT NULL CHECK (nota >= 0 AND nota <= 10),
+    alunoId INT NOT NULL,
+    disciplinaId INT NOT NULL,
+    FOREIGN KEY (alunoId) REFERENCES Alunos(id) ON DELETE CASCADE,
+    FOREIGN KEY (disciplinaId) REFERENCES Disciplinas(id) ON DELETE CASCADE
+);
