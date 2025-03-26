@@ -9,6 +9,7 @@ import jwt from 'jsonwebtoken';
 const SECRET_KEY = process.env.JWT_SECRET;
 
 export function horarioRoutes(router) {
+
   const autenticar = async (req, res, next) => {
       const authHeader = req.headers['authorization'];
   
@@ -27,7 +28,6 @@ export function horarioRoutes(router) {
         res.status(401).json({ error: 'Token inválido ou expirado!' });
       }
     };
-
 
   // Cadastrar horário
   router.post('/horarios', autenticar, async (req, res) => {
@@ -78,6 +78,26 @@ export function horarioRoutes(router) {
     }
   });
 
+  router.get('/horarios/:id', autenticar, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const horario = await Horario.findOne({
+            where: { id, alunoId: req.alunoId }, // Garante que o horário pertence ao aluno autenticado
+            include: [{ model: Disciplina, attributes: ['id', 'nome'] }],
+        });
+
+        if (!horario) {
+            return res.status(404).json({ error: 'Horário não encontrado.' });
+        }
+
+        res.json(horario);
+    } catch (error) {
+        console.error('Erro ao buscar horário:', error);
+        res.status(500).json({ error: 'Erro ao buscar horário', detalhes: error.message });
+    }
+});
+
   // Editar horário
   router.put('/horarios/:id', autenticar, async (req, res) => {
     const { id } = req.params;
@@ -126,4 +146,23 @@ export function horarioRoutes(router) {
         .json({ error: 'Erro ao excluir horário', detalhes: error.message });
     }
   });
+
+  router.get('/disciplinas', autenticar, async (req, res) => {
+    try {
+        const disciplinas = await Disciplina.findAll({
+            where: { alunoId: req.alunoId }, // Filtra disciplinas pelo aluno autenticado
+            attributes: ['id', 'nome'], // Retorna apenas os campos necessários
+        });
+
+        if (disciplinas.length === 0) {
+            return res.status(404).json({ message: 'Nenhuma disciplina encontrada.' });
+        }
+
+        res.json(disciplinas);
+    } catch (error) {
+        console.error('Erro ao buscar disciplinas:', error);
+        res.status(500).json({ error: 'Erro ao buscar disciplinas', detalhes: error.message });
+    }
+});
 }
+
