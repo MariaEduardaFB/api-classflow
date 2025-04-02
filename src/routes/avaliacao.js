@@ -123,4 +123,26 @@ export function avaliacaoRoutes(router) {
       res.status(500).json({ error: 'Erro ao excluir avaliação', detalhes: error.message });
     }
   });
+
+  router.get('/avaliacoes/:id', autenticar, async (req, res) => {
+    const { id } = req.params;
+    console.log("ID recebido:", id);
+    console.log("Aluno ID:", req.alunoId);
+
+    try {
+        const avaliacao = await Avaliacao.findOne({
+            where: { id, alunoId: req.alunoId },
+            attributes: { exclude: ['createdAt', 'updatedAt'] },
+        });
+
+        if (!avaliacao) {
+            return res.status(404).json({ error: 'Avaliação não encontrada!' });
+        }
+
+        res.json(avaliacao);
+    } catch (error) {
+        console.error('Erro ao buscar avaliação:', error);
+        res.status(500).json({ error: 'Erro ao buscar avaliação', detalhes: error.message });
+    }
+});
 }
