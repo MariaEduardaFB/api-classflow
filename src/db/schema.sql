@@ -3,14 +3,16 @@ CREATE DATABASE classflow;
 USE classflow;
 
 CREATE TABLE alunos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nome VARCHAR(255) NOT NULL,
-    matricula VARCHAR(50) NOT NULL UNIQUE,
-    dataNascimento DATE NOT NULL,
-    curso VARCHAR(255) NOT NULL,
-    senha VARCHAR(255) NOT NULL,
-    foto VARCHAR(255) NOT NULL
+    id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(255),
+    matricula VARCHAR(255),
+    email VARCHAR(255),
+    senha VARCHAR(255),
+    curso VARCHAR(255),
+    createdAt DATETIME,
+    updatedAt DATETIME
 );
+
 
 CREATE TABLE disciplinas (
     id INT AUTO_INCREMENT PRIMARY KEY,
